@@ -1,4 +1,4 @@
-# Copyright (C) 2005-2013 IP2Location.com
+# Copyright (C) 2005-2014 IP2Location.com
 # All Rights Reserved
 #
 # This library is free software: you can redistribute it and/or
@@ -14,14 +14,13 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 
-
 package Geo::IP2Location;
 
 use strict;
 use vars qw(@ISA $VERSION @EXPORT);
 use bigint;
 
-$VERSION = '6.00';
+$VERSION = '7.00';
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -30,7 +29,8 @@ use constant UNKNOWN => "UNKNOWN IP ADDRESS";
 use constant NO_IP => "MISSING IP ADDRESS";
 use constant INVALID_IPV6_ADDRESS => "INVALID IPV6 ADDRESS";
 use constant INVALID_IPV4_ADDRESS => "INVALID IPV4 ADDRESS";
-use constant NOT_SUPPORTED => "This parameter is unavailable for selected data file. Please upgrade the data file.";
+use constant INVALID_IP_ADDRESS => "INVALID IP ADDRESS";
+use constant NOT_SUPPORTED => "This parameter is unavailable in selected .BIN data file. Please upgrade data file.";
 use constant MAX_IPV4_RANGE => 4294967295;
 use constant MAX_IPV6_RANGE => 340282366920938463463374607431768211455;
 use constant IP_COUNTRY => 1;
@@ -83,48 +83,51 @@ use constant ALL => 100;
 use constant IPV4 => 0;
 use constant IPV6 => 1;
 
-my @COUNTRY_POSITION =             (0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
-my @REGION_POSITION =              (0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3);
-my @CITY_POSITION =                (0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4);
-my @LATITUDE_POSITION =            (0, 0, 0, 0, 0, 5, 5, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5);
-my @LONGITUDE_POSITION =           (0, 0, 0, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6);
-my @ZIPCODE_POSITION =             (0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 0, 7, 7, 7, 0, 7, 0, 7, 7, 7, 0, 7);
-my @TIMEZONE_POSITION =            (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 7, 8, 8, 8, 7, 8, 0, 8, 8, 8, 0, 8);
-my @ISP_POSITION =                 (0, 0, 3, 0, 5, 0, 7, 5, 7, 0, 8, 0, 9, 0, 9, 0, 9, 0, 9, 7, 9, 0, 9, 7, 9);
-my @DOMAIN_POSITION =              (0, 0, 0, 0, 0, 0, 0, 6, 8, 0, 9, 0, 10,0, 10, 0, 10, 0, 10, 8, 10, 0, 10, 8, 10);
-my @NETSPEED_POSITION =            (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 11,0, 11,8, 11, 0, 11, 0, 11, 0, 11);
-my @IDDCODE_POSITION =             (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 12, 0, 12, 0, 12, 9, 12, 0, 12);
-my @AREACODE_POSITION =            (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10 ,13 ,0, 13, 0, 13, 10, 13, 0, 13);
-my @WEATHERSTATIONCODE_POSITION =  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 14, 0, 14, 0, 14, 0, 14);
-my @WEATHERSTATIONNAME_POSITION =  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 15, 0, 15, 0, 15, 0, 15);
-my @MCC_POSITION =                 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 16, 0, 16, 9, 16);
-my @MNC_POSITION =                 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10,17, 0, 17, 10, 17);
-my @MOBILEBRAND_POSITION =         (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11,18, 0, 18, 11, 18);
-my @ELEVATION_POSITION =           (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 19, 0, 19);
-my @USAGETYPE_POSITION =           (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 20);
+my @COUNTRY_POSITION =             (0,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2);
+my @REGION_POSITION =              (0,  0,  0,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3);
+my @CITY_POSITION =                (0,  0,  0,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4);
+my @LATITUDE_POSITION =            (0,  0,  0,  0,  0,  5,  5,  0,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5);
+my @LONGITUDE_POSITION =           (0,  0,  0,  0,  0,  6,  6,  0,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6);
+my @ZIPCODE_POSITION =             (0,  0,  0,  0,  0,  0,  0,  0,  0,  7,  7,  7,  7,  0,  7,  7,  7,  0,  7,  0,  7,  7,  7,  0,  7);
+my @TIMEZONE_POSITION =            (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  8,  8,  7,  8,  8,  8,  7,  8,  0,  8,  8,  8,  0,  8);
+my @ISP_POSITION =                 (0,  0,  3,  0,  5,  0,  7,  5,  7,  0,  8,  0,  9,  0,  9,  0,  9,  0,  9,  7,  9,  0,  9,  7,  9);
+my @DOMAIN_POSITION =              (0,  0,  0,  0,  0,  0,  0,  6,  8,  0,  9,  0, 10,  0, 10,  0, 10,  0, 10,  8, 10,  0, 10,  8, 10);
+my @NETSPEED_POSITION =            (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  8, 11,  0, 11,  8, 11,  0, 11,  0, 11,  0, 11);
+my @IDDCODE_POSITION =             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9, 12,  0, 12,  0, 12,  9, 12,  0, 12);
+my @AREACODE_POSITION =            (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 13,  0, 13,  0, 13, 10, 13,  0, 13);
+my @WEATHERSTATIONCODE_POSITION =  (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9, 14,  0, 14,  0, 14,  0, 14);
+my @WEATHERSTATIONNAME_POSITION =  (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 15,  0, 15,  0, 15,  0, 15);
+my @MCC_POSITION =                 (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9, 16,  0, 16,  9, 16);
+my @MNC_POSITION =                 (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 17,  0, 17, 10, 17);
+my @MOBILEBRAND_POSITION =         (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11, 18,  0, 18, 11, 18);
+my @ELEVATION_POSITION =           (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11, 19,  0, 19);
+my @USAGETYPE_POSITION =           (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 12, 20);
 
-my @IPV6_COUNTRY_POSITION =             (0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
-my @IPV6_REGION_POSITION =              (0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3);
-my @IPV6_CITY_POSITION =                (0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4);
-my @IPV6_LATITUDE_POSITION =            (0, 0, 0, 0, 0, 5, 5, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5);
-my @IPV6_LONGITUDE_POSITION =           (0, 0, 0, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6);
-my @IPV6_ZIPCODE_POSITION =             (0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 0, 7, 7, 7, 0, 7, 0, 7, 7, 7, 0, 7);
-my @IPV6_TIMEZONE_POSITION =            (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 7, 8, 8, 8, 7, 8, 0, 8, 8, 8, 0, 8);
-my @IPV6_ISP_POSITION =                 (0, 0, 3, 0, 5, 0, 7, 5, 7, 0, 8, 0, 9, 0, 9, 0, 9, 0, 9, 7, 9, 0, 9, 7, 9);
-my @IPV6_DOMAIN_POSITION =              (0, 0, 0, 0, 0, 0, 0, 6, 8, 0, 9, 0, 10,0, 10, 0, 10, 0, 10, 8, 10, 0, 10, 8, 10);
-my @IPV6_NETSPEED_POSITION =            (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 11,0, 11,8, 11, 0, 11, 0, 11, 0, 11);
-my @IPV6_IDDCODE_POSITION =             (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 12, 0, 12, 0, 12, 9, 12, 0, 12);
-my @IPV6_AREACODE_POSITION =            (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10 ,13 ,0, 13, 0, 13, 10, 13, 0, 13);
-my @IPV6_WEATHERSTATIONCODE_POSITION =  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 14, 0, 14, 0, 14, 0, 14);
-my @IPV6_WEATHERSTATIONNAME_POSITION =  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 15, 0, 15, 0, 15, 0, 15);
-my @IPV6_MCC_POSITION =                 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 16, 0, 16, 9, 16);
-my @IPV6_MNC_POSITION =                 (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10,17, 0, 17, 10, 17);
-my @IPV6_MOBILEBRAND_POSITION =         (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11,18, 0, 18, 11, 18);
-my @IPV6_ELEVATION_POSITION =           (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 19, 0, 19);
-my @IPV6_USAGETYPE_POSITION =           (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 20);
+my @IPV6_COUNTRY_POSITION =             (0,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2);
+my @IPV6_REGION_POSITION =              (0,  0,  0,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3);
+my @IPV6_CITY_POSITION =                (0,  0,  0,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4);
+my @IPV6_LATITUDE_POSITION =            (0,  0,  0,  0,  0,  5,  5,  0,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5);
+my @IPV6_LONGITUDE_POSITION =           (0,  0,  0,  0,  0,  6,  6,  0,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6);
+my @IPV6_ZIPCODE_POSITION =             (0,  0,  0,  0,  0,  0,  0,  0,  0,  7,  7,  7,  7,  0,  7,  7,  7,  0,  7,  0,  7,  7,  7,  0,  7);
+my @IPV6_TIMEZONE_POSITION =            (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  8,  8,  7,  8,  8,  8,  7,  8,  0,  8,  8,  8,  0,  8);
+my @IPV6_ISP_POSITION =                 (0,  0,  3,  0,  5,  0,  7,  5,  7,  0,  8,  0,  9,  0,  9,  0,  9,  0,  9,  7,  9,  0,  9,  7,  9);
+my @IPV6_DOMAIN_POSITION =              (0,  0,  0,  0,  0,  0,  0,  6,  8,  0,  9,  0, 10,  0, 10,  0, 10,  0, 10,  8, 10,  0, 10,  8, 10);
+my @IPV6_NETSPEED_POSITION =            (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  8, 11,  0, 11,  8, 11,  0, 11,  0, 11,  0, 11);
+my @IPV6_IDDCODE_POSITION =             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9, 12,  0, 12,  0, 12,  9, 12,  0, 12);
+my @IPV6_AREACODE_POSITION =            (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 13,  0, 13,  0, 13, 10, 13,  0, 13);
+my @IPV6_WEATHERSTATIONCODE_POSITION =  (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9, 14,  0, 14,  0, 14,  0, 14);
+my @IPV6_WEATHERSTATIONNAME_POSITION =  (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 15,  0, 15,  0, 15,  0, 15);
+my @IPV6_MCC_POSITION =                 (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9, 16,  0, 16,  9, 16);
+my @IPV6_MNC_POSITION =                 (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 17,  0, 17, 10, 17);
+my @IPV6_MOBILEBRAND_POSITION =         (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11, 18,  0, 18, 11, 18);
+my @IPV6_ELEVATION_POSITION =           (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11, 19,  0, 19);
+my @IPV6_USAGETYPE_POSITION =           (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 12, 20);
+
+my $IPv6_re = qw((?^::(?::[0-9a-fA-F]{1,4}){0,5}(?:(?::[0-9a-fA-F]{1,4}){1,2}|:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})))|[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{1,4}|:)|(?::(?:[0-9a-fA-F]{1,4})?|(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))))|:(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})?|))|(?::(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|:[0-9a-fA-F]{1,4}(?::(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[0-9a-fA-F]{1,4}){0,2})|:))|(?:(?::[0-9a-fA-F]{1,4}){0,2}(?::(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[0-9a-fA-F]{1,4}){1,2})|:))|(?:(?::[0-9a-fA-F]{1,4}){0,3}(?::(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[0-9a-fA-F]{1,4}){1,2})|:))|(?:(?::[0-9a-fA-F]{1,4}){0,4}(?::(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[0-9a-fA-F]{1,4}){1,2})|:))));
+my $IPv4_re = qw(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3});
 
 sub open {
-  die "Geo::IP2Location::open() requires a database path name" unless( @_ > 1 and $_[1] );
+  die "Geo::IP2Location::open() requires a database path name" unless( (@_ > 1) && ($_[1]) );
   my ($class, $db_file) = @_;
   my $handle;
   my $obj;
@@ -150,253 +153,341 @@ sub initialize {
 }
 
 sub get_module_version {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	return $VERSION;
 }
 
 sub get_database_version {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	return $obj->{"databaseyear"} . "." . $obj->{"databasemonth"} . "." . $obj->{"databaseday"};
 }
 
 sub get_country_short {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	my ($v4, $v6, $new_ipaddr) = &validate_ip($ipaddr);
-	if ($obj->ip_is_ipv6($ipaddr)) {
-		# this is an ipv6 address
-		return $obj->get_ipv6_record($ipaddr, COUNTRYSHORT);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, COUNTRYSHORT);
 	} else {
-		# this is not an ipv6 address
-		return $obj->get_record($ipaddr, COUNTRYSHORT);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, COUNTRYSHORT);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
-sub validate_ip {
-	my ($obj) = shift(@_);
-	my $ipaddr = shift(@_);
-	
-}
-
 sub get_country_long {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, COUNTRYLONG);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, COUNTRYLONG);
 	} else {
-		return $obj->get_record($ipaddr, COUNTRYLONG);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, COUNTRYLONG);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_region {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, REGION);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, REGION);
 	} else {
-		return $obj->get_record($ipaddr, REGION);
-	}
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, REGION);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
+	}	
 }
 
 sub get_city {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, CITY);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, CITY);
 	} else {
-		return $obj->get_record($ipaddr, CITY);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, CITY);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_isp {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, ISP);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, ISP);
 	} else {
-		return $obj->get_record($ipaddr, ISP);
-	}
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, ISP);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
+	}	
 }
 
 sub get_latitude {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, LATITUDE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, LATITUDE);
 	} else {
-		return $obj->get_record($ipaddr, LATITUDE);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, LATITUDE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_zipcode {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, ZIPCODE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, ZIPCODE);
 	} else {
-		return $obj->get_record($ipaddr, ZIPCODE);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, ZIPCODE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_longitude {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, LONGITUDE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, LONGITUDE);
 	} else {
-		return $obj->get_record($ipaddr, LONGITUDE);
-	}
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, LONGITUDE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
+	}	
 }
 
 sub get_domain {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, DOMAIN);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, DOMAIN);
 	} else {
-		return $obj->get_record($ipaddr, DOMAIN);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, DOMAIN);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_timezone {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, TIMEZONE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, TIMEZONE);
 	} else {
-		return $obj->get_record($ipaddr, TIMEZONE);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, TIMEZONE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_netspeed {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, NETSPEED);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, NETSPEED);
 	} else {
-		return $obj->get_record($ipaddr, NETSPEED);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, NETSPEED);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_iddcode {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, IDDCODE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, IDDCODE);
 	} else {
-		return $obj->get_record($ipaddr, IDDCODE);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, IDDCODE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_areacode {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, AREACODE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, AREACODE);
 	} else {
-		return $obj->get_record($ipaddr, AREACODE);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, AREACODE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_weatherstationcode {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, WEATHERSTATIONCODE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, WEATHERSTATIONCODE);
 	} else {
-		return $obj->get_record($ipaddr, WEATHERSTATIONCODE);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, WEATHERSTATIONCODE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_weatherstationname {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, WEATHERSTATIONNAME);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, WEATHERSTATIONNAME);
 	} else {
-		return $obj->get_record($ipaddr, WEATHERSTATIONNAME);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, WEATHERSTATIONNAME);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_mcc {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, MCC);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, MCC);
 	} else {
-		return $obj->get_record($ipaddr, MCC);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, MCC);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_mnc {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, MNC);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, MNC);
 	} else {
-		return $obj->get_record($ipaddr, MNC);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, MNC);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_mobilebrand {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, MOBILEBRAND);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, MOBILEBRAND);
 	} else {
-		return $obj->get_record($ipaddr, MOBILEBRAND);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, MOBILEBRAND);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_elevation {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, ELEVATION);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, ELEVATION);
 	} else {
-		return $obj->get_record($ipaddr, ELEVATION);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, ELEVATION);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_usagetype {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, USAGETYPE);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, USAGETYPE);
 	} else {
-		return $obj->get_record($ipaddr, USAGETYPE);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, USAGETYPE);	
+		} else {
+			return INVALID_IP_ADDRESS;
+		}
 	}
 }
 
 sub get_all {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $ipaddr = shift(@_);
-	if ($obj->{"ipversion"} == IPV6) {
-		return $obj->get_ipv6_record($ipaddr, ALL);
+	my ($ipv, $ipnum) = $obj->validate_ip($ipaddr);
+	if ($ipv == 4) {
+		return $obj->get_record($ipnum, ALL);
 	} else {
-		return $obj->get_record($ipaddr, ALL);
+		if ($ipv == 6) {
+			return $obj->get_ipv6_record($ipnum, ALL);	
+		} else {
+			return (INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS, INVALID_IP_ADDRESS);
+		}
 	}
 }
 
 sub get_ipv6_record {
-	my ($obj) = shift(@_);
-	my $ipaddr = shift(@_);
+	my $obj = shift(@_);
+	my $ipnum = shift(@_);
 	my $mode = shift(@_);
-	my $dbtype= $obj->{"databasetype"};
+	my $dbtype = $obj->{"databasetype"};
 
-	if ($ipaddr eq "") {
+	if ($ipnum eq "") {
 		if ($mode == ALL) {
-			return (NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP);
+			return (NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP);
 		} else {
 			return NO_IP;
-		}
-	}
-
-	if (!$obj->ip_is_ipv6($ipaddr)) {
-		if ($mode == ALL) {
-			return (INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS, INVALID_IPV6_ADDRESS);
-		} else {
-			return INVALID_IPV6_ADDRESS;
 		}
 	}
 
@@ -461,9 +552,7 @@ sub get_ipv6_record {
 		return NOT_SUPPORTED;
 	}
 
-	$ipaddr = $obj->expand_ipv6_address($ipaddr);
-
-	my $realipno = $obj->hex2int($ipaddr);
+	my $realipno = $ipnum;
 	my $handle = $obj->{"filehandle"};
 	my $baseaddr = $obj->{"ipv6databaseaddr"};
 	my $dbcount = $obj->{"ipv6databasecount"};
@@ -484,71 +573,10 @@ sub get_ipv6_record {
 
 	while ($low <= $high) {
 		$mid = int(($low + $high)/2);
-
-		$ipfrom = $obj->read128($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12));
-		$ipto = $obj->read128($handle, $baseaddr + ($mid + 1) * ($dbcolumn * 4 + 12));
-
-		if (($ipno >= $ipfrom) and ($ipno < $ipto)) {
-			if ($mode == COUNTRYSHORT) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype]-1)));
-			}
-			if ($mode == COUNTRYLONG) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype]-1))+3);
-			}
-			if ($mode == REGION) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_REGION_POSITION[$dbtype]-1)));
-			}
-			if ($mode == CITY) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_CITY_POSITION[$dbtype]-1)));
-			}
-			if ($mode == ISP) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_ISP_POSITION[$dbtype]-1)));
-			}
-			if ($mode == LATITUDE) {
-				return $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_LATITUDE_POSITION[$dbtype]-1));
-			}
-			if ($mode == LONGITUDE) {
-				return $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_LONGITUDE_POSITION[$dbtype]-1));
-			}
-			if ($mode == DOMAIN) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_DOMAIN_POSITION[$dbtype]-1)));
-			}
-			if ($mode == ZIPCODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_ZIPCODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == TIMEZONE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_TIMEZONE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == NETSPEED) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_NETSPEED_POSITION[$dbtype]-1)));
-			}
-			if ($mode == IDDCODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_IDDCODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == AREACODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_AREACODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == WEATHERSTATIONCODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_WEATHERSTATIONCODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == WEATHERSTATIONNAME) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_WEATHERSTATIONNAME_POSITION[$dbtype]-1)));
-			}
-			if ($mode == MCC) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_MCC_POSITION[$dbtype]-1)));
-			}
-			if ($mode == MNC) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_MNC_POSITION[$dbtype]-1)));
-			}
-			if ($mode == MOBILEBRAND) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_MOBILEBRAND_POSITION[$dbtype]-1)));
-			}
-			if ($mode == ELEVATION) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_ELEVATION_POSITION[$dbtype]-1)));
-			}
-			if ($mode == USAGETYPE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_USAGETYPE_POSITION[$dbtype]-1)));
-			}
+		$ipfrom = $obj->read128($handle, $baseaddr + $mid * (($dbcolumn * 4) + 12));
+		$ipto = $obj->read128($handle, $baseaddr + ($mid + 1) * (($dbcolumn * 4) + 12));
+		if (($ipno >= $ipfrom) && ($ipno < $ipto)) {
+			my $row_pointer = $baseaddr + $mid * (($dbcolumn * 4) + 12);
 			if ($mode == ALL) {
 				my $country_short = NOT_SUPPORTED;
 				my $country_long = NOT_SUPPORTED;
@@ -570,66 +598,132 @@ sub get_ipv6_record {
 				my $mobilebrand = NOT_SUPPORTED;
 				my $elevation = NOT_SUPPORTED;
 				my $usagetype = NOT_SUPPORTED;
-
+				
 				if ($IPV6_COUNTRY_POSITION[$dbtype] != 0) {
-					$country_short = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype]-1)));
-					$country_long = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype]-1))+3);
+					$country_short = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype])));
+					$country_long = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype])) + 3);
 				}
 				if ($IPV6_REGION_POSITION[$dbtype] != 0) {
-					$region = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_REGION_POSITION[$dbtype]-1)));
+					$region = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_REGION_POSITION[$dbtype])));
 				}
 				if ($IPV6_CITY_POSITION[$dbtype] != 0) {
-					$city = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_CITY_POSITION[$dbtype]-1)));
+					$city = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_CITY_POSITION[$dbtype])));
 				}
 				if ($IPV6_ISP_POSITION[$dbtype] != 0) {
-					$isp = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_ISP_POSITION[$dbtype]-1)));
+					$isp = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_ISP_POSITION[$dbtype])));
 				}
 				if ($IPV6_LATITUDE_POSITION[$dbtype] != 0) {
-					$latitude = $obj->readFloat($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_LATITUDE_POSITION[$dbtype]-1));
+					$latitude = $obj->readFloat($handle, $row_pointer + 8 + 4 * ($IPV6_LATITUDE_POSITION[$dbtype]));
+					$latitude = sprintf("%.6f", $latitude);
 				}
 				if ($IPV6_LONGITUDE_POSITION[$dbtype] != 0) {
-					$longitude = $obj->readFloat($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_LONGITUDE_POSITION[$dbtype]-1));
+					$longitude = $obj->readFloat($handle, $row_pointer + 8 + 4 * ($IPV6_LONGITUDE_POSITION[$dbtype]));
+					$longitude = sprintf("%.6f", $longitude);
 				}
 				if ($IPV6_DOMAIN_POSITION[$dbtype] != 0) {
-					$domain = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_DOMAIN_POSITION[$dbtype]-1)));
+					$domain = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_DOMAIN_POSITION[$dbtype])));
 				}
 				if ($IPV6_ZIPCODE_POSITION[$dbtype] != 0) {
-					$zipcode = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_ZIPCODE_POSITION[$dbtype]-1)));
+					$zipcode = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_ZIPCODE_POSITION[$dbtype])));
 				}
 				if ($IPV6_TIMEZONE_POSITION[$dbtype] != 0) {
-					$timezone = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_TIMEZONE_POSITION[$dbtype]-1)));
+					$timezone = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_TIMEZONE_POSITION[$dbtype])));
 				}
 				if ($IPV6_NETSPEED_POSITION[$dbtype] != 0) {
-					$netspeed = $obj->readStr($handle, $obj->read32($handle, $baseaddr + $mid * ($dbcolumn * 4 + 12) + 12 + 4 * ($IPV6_NETSPEED_POSITION[$dbtype]-1)));
+					$netspeed = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_NETSPEED_POSITION[$dbtype])));
 				}
 				if ($IPV6_IDDCODE_POSITION[$dbtype] != 0) {
-					$iddcode = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_IDDCODE_POSITION[$dbtype]-1)));
+					$iddcode = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_IDDCODE_POSITION[$dbtype])));
 				}
 				if ($IPV6_AREACODE_POSITION[$dbtype] != 0) {
-					$areacode = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_AREACODE_POSITION[$dbtype]-1)));
+					$areacode = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_AREACODE_POSITION[$dbtype])));
 				}
 				if ($IPV6_WEATHERSTATIONCODE_POSITION[$dbtype] != 0) {
-					$weatherstationcode = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_WEATHERSTATIONCODE_POSITION[$dbtype]-1)));
+					$weatherstationcode = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_WEATHERSTATIONCODE_POSITION[$dbtype])));
 				}
 				if ($IPV6_WEATHERSTATIONNAME_POSITION[$dbtype] != 0) {
-					$weatherstationname = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_WEATHERSTATIONNAME_POSITION[$dbtype]-1)));
+					$weatherstationname = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_WEATHERSTATIONNAME_POSITION[$dbtype])));
 				}
 				if ($IPV6_MCC_POSITION[$dbtype] != 0) {
-					$mcc = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_MCC_POSITION[$dbtype]-1)));
+					$mcc = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_MCC_POSITION[$dbtype])));
 				}
 				if ($IPV6_MNC_POSITION[$dbtype] != 0) {
-					$mnc = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_MNC_POSITION[$dbtype]-1)));
+					$mnc = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_MNC_POSITION[$dbtype])));
 				}
 				if ($IPV6_MOBILEBRAND_POSITION[$dbtype] != 0) {
-					$mobilebrand = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_MOBILEBRAND_POSITION[$dbtype]-1)));
+					$mobilebrand = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_MOBILEBRAND_POSITION[$dbtype])));
 				}
 				if ($IPV6_ELEVATION_POSITION[$dbtype] != 0) {
-					$elevation = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_ELEVATION_POSITION[$dbtype]-1)));
+					$elevation = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_ELEVATION_POSITION[$dbtype])));
 				}
 				if ($IPV6_USAGETYPE_POSITION[$dbtype] != 0) {
-					$usagetype = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 12 + 4 * ($IPV6_USAGETYPE_POSITION[$dbtype]-1)));
+					$usagetype = $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_USAGETYPE_POSITION[$dbtype])));
 				}
 				return ($country_short, $country_long, $region, $city, $latitude, $longitude, $zipcode, $timezone, $isp, $domain, $netspeed, $iddcode, $areacode, $weatherstationcode, $weatherstationname, $mcc, $mnc, $mobilebrand, $elevation, $usagetype);
+			}
+			if ($mode == COUNTRYSHORT) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype])));
+			}
+			if ($mode == COUNTRYLONG) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_COUNTRY_POSITION[$dbtype])) + 3);
+			}
+			if ($mode == REGION) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_REGION_POSITION[$dbtype])));
+			}
+			if ($mode == CITY) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_CITY_POSITION[$dbtype])));
+			}
+			if ($mode == ISP) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_ISP_POSITION[$dbtype])));
+			}
+			if ($mode == LATITUDE) {
+				my $lat = $obj->readFloat($handle, $row_pointer + 8 + 4 * ($IPV6_LATITUDE_POSITION[$dbtype]));
+				$lat = sprintf("%.6f", $lat);
+				return $lat;
+			}
+			if ($mode == LONGITUDE) {
+				my $lon = $obj->readFloat($handle, $row_pointer + 8 + 4 * ($IPV6_LONGITUDE_POSITION[$dbtype]));
+				$lon = sprintf("%.6f", $lon);
+				return $lon;
+			}
+			if ($mode == DOMAIN) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_DOMAIN_POSITION[$dbtype])));
+			}
+			if ($mode == ZIPCODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_ZIPCODE_POSITION[$dbtype])));
+			}
+			if ($mode == TIMEZONE) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_TIMEZONE_POSITION[$dbtype])));
+			}
+			if ($mode == NETSPEED) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_NETSPEED_POSITION[$dbtype])));
+			}
+			if ($mode == IDDCODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_IDDCODE_POSITION[$dbtype])));
+			}
+			if ($mode == AREACODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_AREACODE_POSITION[$dbtype])));
+			}
+			if ($mode == WEATHERSTATIONCODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_WEATHERSTATIONCODE_POSITION[$dbtype])));
+			}
+			if ($mode == WEATHERSTATIONNAME) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_WEATHERSTATIONNAME_POSITION[$dbtype])));
+			}
+			if ($mode == MCC) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_MCC_POSITION[$dbtype])));
+			}
+			if ($mode == MNC) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_MNC_POSITION[$dbtype])));
+			}
+			if ($mode == MOBILEBRAND) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_MOBILEBRAND_POSITION[$dbtype])));
+			}
+			if ($mode == ELEVATION) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_ELEVATION_POSITION[$dbtype])));
+			}
+			if ($mode == USAGETYPE) {
+				return $obj->readStr($handle, $obj->read32($handle, $row_pointer + 8 + 4 * ($IPV6_USAGETYPE_POSITION[$dbtype])));
 			}
 		} else {
 			if ($ipno < $ipfrom) {
@@ -643,24 +737,16 @@ sub get_ipv6_record {
 }
 
 sub get_record {
-	my ($obj) = shift(@_);
-	my $ipaddr = shift(@_);
+	my $obj = shift(@_);
+	my $ipnum = shift(@_);
 	my $mode = shift(@_);
 	my $dbtype= $obj->{"databasetype"};
 
-	if ($ipaddr eq "") {
+	if ($ipnum eq "") {
 		if ($mode == ALL) {
 			return (NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP, NO_IP);
 		} else {
 			return NO_IP;
-		}
-	}
-
-	if (!$obj->ip_is_ipv4($ipaddr)) {
-		if ($mode == ALL) {
-			return (INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS, INVALID_IPV4_ADDRESS);
-		} else {
-			return INVALID_IPV4_ADDRESS;
 		}
 	}
 
@@ -724,8 +810,8 @@ sub get_record {
 	if (($mode == USAGETYPE) && ($USAGETYPE_POSITION[$dbtype] == 0)) {
 		return NOT_SUPPORTED;
 	}
-	$ipaddr = $obj->name2ip($ipaddr);
-	my $realipno = $obj->ip2no($ipaddr);
+	
+	my $realipno = $ipnum;
 	my $handle = $obj->{"filehandle"};
 	my $baseaddr = $obj->{"ipv4databaseaddr"};
 	my $dbcount = $obj->{"ipv4databasecount"};
@@ -748,67 +834,7 @@ sub get_record {
 		$mid = int(($low + $high)/2);
 		$ipfrom = $obj->read32($handle, $baseaddr + $mid * $dbcolumn * 4);
 		$ipto = $obj->read32($handle, $baseaddr + ($mid + 1) * $dbcolumn * 4);
-		if (($ipno >= $ipfrom) and ($ipno < $ipto)) {
-			if ($mode == COUNTRYSHORT) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($COUNTRY_POSITION[$dbtype]-1)));
-			}
-			if ($mode == COUNTRYLONG) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($COUNTRY_POSITION[$dbtype]-1))+3);
-			}
-			if ($mode == REGION) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($REGION_POSITION[$dbtype]-1)));
-			}
-			if ($mode == CITY) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($CITY_POSITION[$dbtype]-1)));
-			}
-			if ($mode == ISP) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($ISP_POSITION[$dbtype]-1)));
-			}
-			if ($mode == LATITUDE) {
-				return $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($LATITUDE_POSITION[$dbtype]-1));
-			}
-			if ($mode == LONGITUDE) {
-				return $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($LONGITUDE_POSITION[$dbtype]-1));
-			}
-			if ($mode == DOMAIN) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($DOMAIN_POSITION[$dbtype]-1)));
-			}
-			if ($mode == ZIPCODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($ZIPCODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == TIMEZONE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($TIMEZONE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == NETSPEED) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($NETSPEED_POSITION[$dbtype]-1)));
-			}
-			if ($mode == IDDCODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($IDDCODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == AREACODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($AREACODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == WEATHERSTATIONCODE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($WEATHERSTATIONCODE_POSITION[$dbtype]-1)));
-			}
-			if ($mode == WEATHERSTATIONNAME) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($WEATHERSTATIONNAME_POSITION[$dbtype]-1)));
-			}
-			if ($mode == MCC) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($MCC_POSITION[$dbtype]-1)));
-			}
-			if ($mode == MNC) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($MNC_POSITION[$dbtype]-1)));
-			}
-			if ($mode == MOBILEBRAND) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($MOBILEBRAND_POSITION[$dbtype]-1)));
-			}
-			if ($mode == ELEVATION) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($ELEVATION_POSITION[$dbtype]-1)));
-			}
-			if ($mode == USAGETYPE) {
-				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($USAGETYPE_POSITION[$dbtype]-1)));
-			}
+		if (($ipno >= $ipfrom) && ($ipno < $ipto)) {
 			if ($mode == ALL) {
 				my $country_short = NOT_SUPPORTED;
 				my $country_long = NOT_SUPPORTED;
@@ -835,6 +861,7 @@ sub get_record {
 					$country_short = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($COUNTRY_POSITION[$dbtype]-1)));
 					$country_long = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($COUNTRY_POSITION[$dbtype]-1))+3);
 				}
+
 				if ($REGION_POSITION[$dbtype] != 0) {
 					$region = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($REGION_POSITION[$dbtype]-1)));
 				}
@@ -846,9 +873,11 @@ sub get_record {
 				}
 				if ($LATITUDE_POSITION[$dbtype] != 0) {
 					$latitude = $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($LATITUDE_POSITION[$dbtype]-1));
+					$latitude = sprintf("%.6f", $latitude);
 				}
 				if ($LONGITUDE_POSITION[$dbtype] != 0) {
 					$longitude = $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($LONGITUDE_POSITION[$dbtype]-1));
+					$longitude = sprintf("%.6f", $longitude);
 				}
 				if ($DOMAIN_POSITION[$dbtype] != 0) {
 					$domain = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($DOMAIN_POSITION[$dbtype]-1)));
@@ -890,7 +919,72 @@ sub get_record {
 					$usagetype = $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($USAGETYPE_POSITION[$dbtype]-1)));
 				}
 				return ($country_short, $country_long, $region, $city, $latitude, $longitude, $zipcode, $timezone, $isp, $domain, $netspeed, $iddcode, $areacode, $weatherstationcode, $weatherstationname, $mcc, $mnc, $mobilebrand, $elevation, $usagetype);
+			}			
+			if ($mode == COUNTRYSHORT) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($COUNTRY_POSITION[$dbtype]-1)));
 			}
+			if ($mode == COUNTRYLONG) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($COUNTRY_POSITION[$dbtype]-1))+3);
+			}
+			if ($mode == REGION) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($REGION_POSITION[$dbtype]-1)));
+			}
+			if ($mode == CITY) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($CITY_POSITION[$dbtype]-1)));
+			}
+			if ($mode == ISP) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($ISP_POSITION[$dbtype]-1)));
+			}
+			if ($mode == LATITUDE) {
+				my $lat = $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($LATITUDE_POSITION[$dbtype]-1)); 
+				$lat = sprintf("%.6f", $lat);
+				return $lat;
+			}
+			if ($mode == LONGITUDE) {
+				my $lon = $obj->readFloat($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($LONGITUDE_POSITION[$dbtype]-1));
+				$lon = sprintf("%.6f", $lon);
+				return $lon;
+			}
+			if ($mode == DOMAIN) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($DOMAIN_POSITION[$dbtype]-1)));
+			}
+			if ($mode == ZIPCODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($ZIPCODE_POSITION[$dbtype]-1)));
+			}
+			if ($mode == TIMEZONE) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($TIMEZONE_POSITION[$dbtype]-1)));
+			}
+			if ($mode == NETSPEED) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($NETSPEED_POSITION[$dbtype]-1)));
+			}
+			if ($mode == IDDCODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($IDDCODE_POSITION[$dbtype]-1)));
+			}
+			if ($mode == AREACODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($AREACODE_POSITION[$dbtype]-1)));
+			}
+			if ($mode == WEATHERSTATIONCODE) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($WEATHERSTATIONCODE_POSITION[$dbtype]-1)));
+			}
+			if ($mode == WEATHERSTATIONNAME) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($WEATHERSTATIONNAME_POSITION[$dbtype]-1)));
+			}
+			if ($mode == MCC) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($MCC_POSITION[$dbtype]-1)));
+			}
+			if ($mode == MNC) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($MNC_POSITION[$dbtype]-1)));
+			}
+			if ($mode == MOBILEBRAND) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($MOBILEBRAND_POSITION[$dbtype]-1)));
+			}
+			if ($mode == ELEVATION) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($ELEVATION_POSITION[$dbtype]-1)));
+			}
+			if ($mode == USAGETYPE) {
+				return $obj->readStr($handle, $obj->read32($handle, $baseaddr + ($mid * $dbcolumn * 4) + 4 * ($USAGETYPE_POSITION[$dbtype]-1)));
+			}
+
 		} else {
 			if ($ipno < $ipfrom) {
 				$high = $mid - 1;
@@ -964,135 +1058,98 @@ sub bytes2int {
 	return ($ip1_31 * 4294967296 * 4294967296 * 4294967296) + ($ip32_63 * 4294967296 * 4294967296) + ($ip64_95 * 4294967296) + $ip96_127;
 }
 
+sub validate_ip {
+	my $obj = shift(@_);
+	my $ip = shift(@_);
+	my $ipv = -1;
+	my $ipnum = -1;
+	#name server lookup if domain name
+	$ip = $obj->name2ip($ip);
+	
+	if ($obj->ip_is_ipv4($ip)) {
+		#ipv4 address
+		$ipv = 4;
+		$ipnum = $obj->ip2no($ip);
+	} else {
+		#expand ipv6 address
+		$ip = $obj->expand_ipv6_address($ip);
+		if ($obj->ip_is_ipv6($ip)) {
+			#ipv6 address
+			$ipv = 6;
+			$ipnum = $obj->hex2int($ip);
+			
+			#reformat ipv4 address in ipv6 
+			if (($ipnum >= 281470681743360) && ($ipnum <= 281474976710655)) {
+				$ipv = 4;
+				$ipnum = $ipnum - 281470681743360;
+			}
+		} else {
+			#dunno what is this
+		}
+	}
+	return ($ipv, $ipnum);
+}
 
 sub expand_ipv6_address {
-	my ($obj) = shift(@_);
-	my ($ip) = shift(@_);
-	$ip =~ s/::/:Z:/;
+	my $obj = shift(@_);
+	my $ip = shift(@_);
+	$ip =~ s/\:\:/\:Z\:/;
 	my @ip = split(/\:/, $ip);
-	my $num = scalar (@ip);
+	my $num = scalar(@ip);
+
+	my $l = 8;
+	if ($ip[$#ip] =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/) {
+		my $a = sprintf("%x", ($1*256 + $2));
+		my $b = sprintf("%x", ($3*256 + $4));
+		$ip[$#ip] = $a;
+		$ip[$#ip+1] = $b;
+		$l--;
+	}
+
+	if ($#ip == 8) {
+		shift(@ip);
+		$l++;
+	}
 
 	foreach (0..(scalar(@ip)-1)) {
 		$ip[$_] = ('0'x(4-length ($ip[$_]))).$ip[$_];
-	}
-	
-	my $l = 8;
-	if ($ip[$#ip] =~ /^\d+\.\d+\.\d+\.\d+$/) {
-		$l--;
 	}
 
 	foreach (0..(scalar(@ip)-1)) {
 		next unless ($ip[$_] eq '000Z');
 		my @empty = map { $_ = '0'x4 } (0..7);
-		$ip[$_] = join(':',@empty[0..$l-$num]);
+		$ip[$_] = join(':', @empty[0..$l-$num]);
 		last;
-	};
-
-	return (uc(join ':', @ip));
-};
-
-
-sub ip_is_ipv4 {
-	my ($obj) = shift(@_);
-	my ($ip) = shift(@_);
-
-	unless ($ip =~ m/^[\d\.]+$/) {
-		return 0;
-	};
-
-	if ($ip =~ m/^\./) {
-		return 0;
-	};
-
-	if ($ip =~ m/\.$/) {
-		return 0;
-	};
-
-	#if ($ip =~ m/^(\d+)$/ and $1 < 256) { return 1 };
-	my $n = ($ip =~ tr/\./\./);
-
-	unless ($n >= 0 and $n < 4)	{
-		return 0;
-	};
-
-	if ($ip =~ m/\.\./)	{
-		return 0;
-	};
-
-	foreach (split /\./, $ip)	{
-		unless (($_ >= 0) && ($_ < 256)) {
-			return 0;
-		};
-	};
-	return 1;
-}
-
-sub ip_is_ipv6 {
-	my ($obj) = shift(@_);
-	my ($ip) = shift(@_);
-
-	my $n = ($ip =~ tr/:/:/);
-	return (0) unless ($n > 0 and $n < 8);
-
-	my $k;
-
-	foreach (split /:/, $ip) {
-		$k++;
-		next if ($_ eq '');
-		next if (/^[a-f\d]{1,4}$/i);
-
-		if ($k == $n+1)	{
-			next if ($obj->ip_is_ipv4($_));
-		};
-		return 0;
-	};
-
-	if ($ip =~ m/^:[^:]/)	{
-		return 0;
-	};
-
- 	if ($ip =~ m/[^:]:$/) {
-		return 0;
-	};
-
-	my $m = ($ip =~ s/:(?=:)//g);
-
-	if ($m eq "") {
-		$m = 0;
 	}
 
-	if ($m > 1)	{
-		return 0;
-	};
-
-	return 1;
-};
+	return (uc(join ':', @ip));
+}
 
 sub hex2int {
-	my ($obj) = shift(@_);
+	my $obj = shift(@_);
 	my $hexip = shift(@_);
 
-	$hexip =~ s/://g;
+	$hexip =~ s/\://g;
 
-	unless (length ($hexip) == 32) {
+	unless (length($hexip) == 32) {
 		return 0;
 	};
 
-	my $binip = unpack( 'B128', pack( 'H32', $hexip ));
-
+	my $binip = unpack('B128', pack('H32', $hexip));
 	my ($n, $dec) = (Math::BigInt->new(1), Math::BigInt->new(0));
 
-	foreach (reverse (split '', $binip)) {
-		$_ && $dec += $n;
+	foreach (reverse (split('', $binip))) {
+		$_ && ($dec += $n);
 		$n *= 2;
-	};
+	}
 
 	$dec =~ s/^\+//;
 	return $dec;
 }
 
 sub ip2no {
-	my ($obj, $ip) = @_;
+	my $obj = shift(@_);
+	my $ip = shift(@_);
 	my @block = split(/\./, $ip);
 	my $no = 0;
 	$no = $block[3];
@@ -1103,15 +1160,36 @@ sub ip2no {
 }
 
 sub name2ip {
-  my ($obj, $host) = @_;
+  my $obj = shift(@_);
+  my $host = shift(@_);
   my $ip_address = "";
-  if (($host =~ m/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) || (($host =~ m/^[\d\:\.]\:[\d\:\.]+$/))) {
+  if (($host =~ m/^$IPv4_re$/) || ($host =~ m/^$IPv6_re$/) || ($host =~ m/^\:\:$/)) {
     $ip_address = $host;
   } else {
   	# TO_DO: Can we return IPv6 address too?
     $ip_address = join('.', unpack('C4',(gethostbyname($host))[4]));
   }
   return $ip_address;
+}
+
+sub ip_is_ipv4 {
+	my $obj = shift(@_);
+	my $ip = shift(@_);
+	if ($ip =~ m/^$IPv4_re$/) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+sub ip_is_ipv6 {
+	my $obj = shift(@_);
+	my $ip = shift(@_);
+	if (($ip =~ m/^$IPv6_re$/) || ($ip =~ m/^$IPv4_re$/)) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 1;
@@ -1155,12 +1233,12 @@ Geo::IP2Location - Fast lookup of country, region, city, latitude, longitude, ZI
 
 =head1 DESCRIPTION
 
-This Perl modules provide fast lookup of country, region, city, latitude, longitude, ZIP code, time zone, ISP, domain name, connection type, IDD code, area code, weather station code and station, MCC, MNC, mobile carrier brand name, elevation, and usage type from IP address by using IP2Location database. This module uses a file based database available at IP2Location.com. This database simply contains IP blocks as keys, and other information such as country, region, city, latitude, longitude, ISP and domain name as values. It supports both IP address in IPv4 and IPv6.
+This Perl module provides fast lookup of country, region, city, latitude, longitude, ZIP code, time zone, ISP, domain name, connection type, IDD code, area code, weather station code and station, MCC, MNC, mobile carrier brand, elevation and usage type from IP address using IP2Location database. This module uses a file based .BIN database available at http://www.ip2location.com upon subscription. This database contains IP blocks as keys and other information as values. It supports IP address in IPv4 or IPv6.
 
-This module can be used in many types of projects such as:
+This module can be used in many types of project such as:
 
  1) select the geographically closest mirror
- 2) analyze your web server logs to determine the countries of your visitors
+ 2) analyze web server logs to determine the countries of visitors
  3) credit card fraud detection
  4) software export controls
  5) display native language and currency
@@ -1169,11 +1247,11 @@ This module can be used in many types of projects such as:
 
 =head1 IP2LOCATION DATABASES
 
-The complete IPv4 and IPv6 database are available at
+The complete IPv4 and IPv6 database are available at:
 
 http://www.ip2location.com
 
-The database will be updated in monthly basis for greater accuracy. Free sample database is available at
+The database will be updated in monthly basis for greater accuracy. Free sample database is available at:
 
 http://www.ip2location.com/developers
 
@@ -1193,88 +1271,87 @@ Constructs a new Geo::IP2Location object with the database located at $database_
 
 =item $countryshort = $obj->get_country_short( $ip );
 
-Returns the ISO 3166 country code for an IP address or domain name.
+Returns the ISO 3166 country code of IP address or domain name.
 
 =item $countrylong = $obj->get_country_long( $ip );
 
-Returns the full country name for an IP address or domain name.
+Returns the full country name of IP address or domain name.
 
 =item $region = $obj->get_region( $ip );
 
-Returns the region for an IP address or domain name.
+Returns the region of IP address or domain name.
 
 =item $city = $obj->get_city( $ip );
 
-Returns the city for an IP address or domain name.
+Returns the city of IP address or domain name.
 
 =item $latitude = $obj->get_latitude( $ip );
 
-Returns the latitude for an IP address or domain name.
+Returns the latitude of IP address or domain name.
 
 =item $longitude = $obj->get_longitude( $ip );
 
-Returns the longitude for an IP address or domain name.
+Returns the longitude of IP address or domain name.
 
 =item $isp = $obj->get_isp( $ip );
 
-Returns the ISP name for an IP address or domain name.
+Returns the ISP name of IP address or domain name.
 
 =item $domain = $obj->get_domain( $ip );
 
-Returns the domain name for an IP address or domain name.
+Returns the domain name of IP address or domain name.
 
 =item $zip = $obj->get_zipcode( $ip );
 
-Returns the ZIP code for an IP address or domain name.
+Returns the ZIP code of IP address or domain name.
 
 =item $tz = $obj->get_timezone( $ip );
 
-Returns the time zone for an IP address or domain name.
+Returns the time zone of IP address or domain name.
 
 =item $ns = $obj->get_netspeed( $ip );
 
-Returns the connection type (DIAL, DSL or COMP) for an IP address or domain name.
+Returns the connection type (DIAL, DSL or COMP) of IP address or domain name.
 
 =item $idd = $obj->get_iddcode( $ip );
 
-Returns the country IDD calling code for an IP address or domain name.
+Returns the country IDD calling code of IP address or domain name.
 
 =item $area = $obj->get_areacode( $ip );
 
-Returns the phone area code code for an IP address or domain name.
+Returns the phone area code code of IP address or domain name.
 
 =item $wcode = $obj->get_weatherstationcode( $ip );
 
-Returns the nearest weather station code for an IP address or domain name.
+Returns the nearest weather station code of IP address or domain name.
 
 =item $wname = $obj->get_weatherstationname( $ip );
 
-Returns the nearest weather station name for an IP address or domain name.
+Returns the nearest weather station name of IP address or domain name.
 
 =item $mcc = $obj->get_mcc( $ip );
 
-Returns the mobile carrier code (MCC) for an IP address or domain name.
+Returns the mobile carrier code (MCC) of IP address or domain name.
 
 =item $mnc = $obj->get_mnc( $ip );
 
-Returns the mobile network code (MNC) for an IP address or domain name.
+Returns the mobile network code (MNC) of IP address or domain name.
 
 =item $brand = $obj->get_mobilebrand( $ip );
 
-Returns the mobile carrier brand for an IP address or domain name.
+Returns the mobile carrier brand of IP address or domain name.
 
 =item $elevation = $obj->get_elevation( $ip );
 
-Returns the elevation for an IP address or domain name.
+Returns the elevation of IP address or domain name.
 
 =item $usagetype = $obj->get_usagetype( $ip );
 
-Returns the usage type for an IP address or domain name.
-
+Returns the usage type of IP address or domain name.
 
 =item ($cos, $col, $reg, $cit, $lat, $lon, $zip, $tmz, $isp, $dom, $ns, $idd, $area, $wcode, $wname, $mcc, $mnc, $brand, $elevation, $usagetype) = $obj->get_all( $ip );
 
-Returns an array of country, region, city, latitude, longitude, ZIP code, time zone, ISP, domain name, connection type, IDD code, area code, weather station code and station, MCC, MNC, mobile carrier brand name, elevation, and usage type for an IP address.
+Returns an array of country, region, city, latitude, longitude, ZIP code, time zone, ISP, domain name, connection type, IDD code, area code, weather station code and station, MCC, MNC, mobile carrier brand, elevation and usage type of IP address.
 
 =item $dbversion = $obj->get_database_version();
 
@@ -1290,11 +1367,11 @@ http://www.ip2location.com
 
 =head1 VERSION
 
-5.00
+7.00
 
 =head1 AUTHOR
 
-Copyright (c) 2013 IP2Location.com
+Copyright (c) 2014 IP2Location.com
 
 All rights reserved. This package is free software; It is licensed under the GPL.
 

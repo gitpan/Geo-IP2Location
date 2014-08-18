@@ -1,7 +1,12 @@
 Revision history for Perl extension Geo::IP2Location.
 
-5.00  Wed Jun 05 11:16:00 2013
-      Fix the ELEVATION ISSUE
+7.00  Mon Jul 21 12:00:00 2014
+      Tenth release under the Geo::IP2Location
+      Support new IPv6 BIN file
+      Skip version 6.00 to standardize with other IP2Location library
+
+5.01  Wed Jun 05 11:16:00 2013
+      Fix the elevation value issue
 
 5.00  Mon Apr 15 17:16:00 2012
       Ninth release under the Geo::IP2Location
